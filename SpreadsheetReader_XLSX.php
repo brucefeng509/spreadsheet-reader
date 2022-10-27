@@ -20,7 +20,8 @@
 		 *	With large shared string caches there are huge performance gains, however a lot of memory could be used which
 		 *	can be a problem, especially on shared hosting.
 		 */
-		const SHARED_STRING_CACHE_LIMIT = 50000;
+		// const SHARED_STRING_CACHE_LIMIT = 50000;
+		const SHARED_STRING_CACHE_LIMIT = null;
 
 		private $Options = array(
 			'TempDir' => '',
@@ -213,7 +214,7 @@
 
 			$this -> TempDir = rtrim($this -> TempDir, DIRECTORY_SEPARATOR);
 			$this -> TempDir = $this -> TempDir.DIRECTORY_SEPARATOR.uniqid().DIRECTORY_SEPARATOR;
-
+			$this -> Options['ReturnDateTimeObjects'] = isset($Options['ReturnDateTimeObjects']) && is_bool($Options['ReturnDateTimeObjects']) ? $Options['ReturnDateTimeObjects'] : false;
 			$Zip = new ZipArchive;
 			$Status = $Zip -> open($Filepath);
 
@@ -238,6 +239,7 @@
 				if (is_readable($this -> SharedStringsPath))
 				{
 					$this -> SharedStrings = new XMLReader;
+					libxml_disable_entity_loader(false); // add by houfu at 2022.10.26
 					$this -> SharedStrings -> open($this -> SharedStringsPath);
 					$this -> PrepareSharedStringCache();
 				}
@@ -809,6 +811,7 @@
 				// Dates and times
 				elseif ($Format['Type'] == 'DateTime')
 				{
+					$Value = abs($Value); // Helder - FIX DateInterval problem
 					$Days = (int)$Value;
 					// Correcting for Feb 29, 1900
 					if ($Days > 60)
@@ -836,6 +839,7 @@
 					else
 					{
 						// A DateTime object is returned
+						$Value = $Value->format("Y-m-d H:i:s");
 					}
 				}
 				elseif ($Format['Type'] == 'Euro')
