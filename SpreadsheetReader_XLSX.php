@@ -390,6 +390,39 @@
 		}
 
 		/**
+		 * Retrieves an array with information about sheets in the current file
+		 *
+		 * @return array List of active sheets (key is sheet index, value is name)
+		 */
+		public function Sheets_active()
+		{
+			if ($this -> Sheets_active === false)
+			{
+				$this -> Sheets_active = array();
+				foreach ($this -> WorkbookXML -> sheets -> sheet as $Index => $Sheet)
+				{
+					if (isset($Sheet['state'])&&$Sheet['state']=='hidden') { // 过滤隐藏表
+						continue;
+					}
+
+					$Attributes = $Sheet -> attributes('r', true);
+					foreach ($Attributes as $Name => $Value)
+					{
+						if ($Name == 'id')
+						{
+							$SheetID = (int)str_replace('rId', '', (string)$Value);
+							break;
+						}
+					}
+
+					$this -> Sheets_active[$SheetID] = (string)$Sheet['name'];
+				}
+				ksort($this -> Sheets_active);
+			}
+			return array_values($this -> Sheets_active);
+		}
+
+		/**
 		 * Changes the current sheet in the file to another
 		 *
 		 * @param int Sheet index
@@ -403,6 +436,36 @@
 			if (isset($Sheets[$Index]))
 			{
 				$SheetIndexes = array_keys($this -> Sheets);
+				$RealSheetIndex = $SheetIndexes[$Index];
+			}
+
+			$TempWorksheetPath = $this -> TempDir.'xl/worksheets/sheet'.$RealSheetIndex.'.xml';
+
+			if ($RealSheetIndex !== false && is_readable($TempWorksheetPath))
+			{
+				$this -> WorksheetPath = $TempWorksheetPath;
+
+				$this -> rewind();
+				return true;
+			}
+
+			return false;
+		}
+
+		/**
+		 * Changes the current active sheet in the file to another
+		 *
+		 * @param int active Sheet index
+		 *
+		 * @return bool True if sheet was successfully changed, false otherwise.
+		 */
+		public function ChangeSheetActive($Index)
+		{
+			$RealSheetIndex = false;
+			$Sheets = $this -> Sheets_active();
+			if (isset($Sheets[$Index]))
+			{
+				$SheetIndexes = array_keys($this -> Sheets_active);
 				$RealSheetIndex = $SheetIndexes[$Index];
 			}
 
