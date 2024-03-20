@@ -189,7 +189,8 @@
 		private static $DecimalSeparator = '.';
 		private static $ThousandSeparator = '';
 		private static $CurrencyCode = '';
-
+		public $CurrentCellFormular = false;
+		
 		/**
 		 * @var array Cache for already processed format strings
 		 */
@@ -1056,6 +1057,7 @@
 			$this -> Index++;
 
 			$this -> CurrentRow = array();
+			$this -> CurrentCellFormular = array();
 
 			if (!$this -> RowOpen)
 			{
@@ -1120,6 +1122,8 @@
 
 							// Get the index of the cell
 							$Index = $this -> Worksheet -> getAttribute('r');
+							$RowNumber = preg_replace('{[a-zA-Z]}S', '', $Index);
+							$RowIndex = $RowNumber - 1;
 							$Letter = preg_replace('{[^[:alpha:]]}S', '', $Index);
 							$Index = self::IndexFromColumnLetter($Letter);
 
@@ -1143,6 +1147,15 @@
 
 							break;
 						// Cell value
+						case 'f':
+							if ($this -> Worksheet -> nodeType == XMLReader::END_ELEMENT)
+							{
+								continue;
+							}
+	
+							$Value = $this -> Worksheet -> readString();
+							$this->CurrentCellFormular[$Index] = $Value;
+							break;
 						case 'v':
 						case 'is':
 							if ($this -> Worksheet -> nodeType == XMLReader::END_ELEMENT)
@@ -1179,6 +1192,11 @@
 					$this -> CurrentRow = $this -> CurrentRow + array_fill(0, $MaxIndex + 1, '');
 					ksort($this -> CurrentRow);
 				}
+
+				// 重新组织带真实行索引的行数据
+				$this -> CurrentRow = ['RowIndex'=>$RowIndex, 'RowData'=>$this->CurrentRow];
+				// 重新组织带真实行索引的行公式数据
+				$this -> CurrentCellFormular = ['RowIndex'=>$RowIndex, 'RowData'=>$this->CurrentCellFormular];
 			}
 
 			return $this -> CurrentRow;
